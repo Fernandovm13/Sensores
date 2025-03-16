@@ -3,6 +3,7 @@ package main
 import (
     "log"
     "webhook-sensors/adapters/fcm"
+    "webhook-sensors/adapters/repo"
     "webhook-sensors/adapters/webhook"
     "webhook-sensors/simulations"
 
@@ -16,12 +17,16 @@ func main() {
         log.Fatalf("Error inicializando FCM: %v\n", err)
     }
 
+    // Crear repositorio en memoria
+    sensorRepo := repo.NewInMemorySensorRepo()
+
     // Configurar el webhook
-    webhookHandler := webhook.NewWebhookHandler(fcmSender)
+    webhookHandler := webhook.NewWebhookHandler(fcmSender, sensorRepo)
 
     // Configurar el servidor Gin
     r := gin.Default()
     r.POST("/webhook", webhookHandler.HandleSensorData)
+    r.GET("/readings", webhookHandler.GetSensorReadings)
 
     // Iniciar la simulación de sensores
     go simulations.SimulateSensors("http://localhost:8080/webhook")
