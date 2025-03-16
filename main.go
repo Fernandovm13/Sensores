@@ -1,33 +1,35 @@
 package main
 
 import (
-    "log"
-    "webhook-sensors/adapters/fcm"
-    "webhook-sensors/adapters/webhook"
-    "webhook-sensors/simulations"
+	"log"
+	"webhook-sensors/infraestructure/adapters/fcm"
+	"webhook-sensors/infraestructure/webhook"
+	"webhook-sensors/simulations"
 
-    "github.com/gin-gonic/gin"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
-    // Inicializar FCM
-    fcmSender, err := fcm.NewFCMSender("serviceAccountKey.json")
-    if err != nil {
-        log.Fatalf("Error inicializando FCM: %v\n", err)
-    }
+        fcmSender, err := fcm.NewFCMSender("serviceAccountKey.json")
+        if err != nil {
+                log.Fatalf("Error inicializando FCM: %v\n", err)
+        }
 
-    // Configurar el webhook
-    webhookHandler := webhook.NewWebhookHandler(fcmSender)
+        webhookHandler := webhook.NewWebhookHandler(fcmSender)
 
-    // Configurar el servidor Gin
-    r := gin.Default()
-    r.POST("/webhook", webhookHandler.HandleSensorData)
+        r := gin.Default()
 
-    // Iniciar la simulación de sensores
-    go simulations.SimulateSensors("http://localhost:8080/webhook")
+        config := cors.DefaultConfig()
+        config.AllowAllOrigins = true
 
-    // Iniciar el servidor
-    if err := r.Run(":8080"); err != nil {
-        log.Fatalf("Error iniciando el servidor: %v\n", err)
-    }
+        r.Use(cors.New(config))
+
+        r.POST("/webhook", webhookHandler.HandleSensorData)
+
+        go simulations.SimulateSensors("http://localhost:8080/webhook")
+
+        if err := r.Run(":8080"); err != nil {
+                log.Fatalf("Error iniciando el servidor: %v\n", err)
+        }
 }

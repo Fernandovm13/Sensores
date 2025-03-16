@@ -9,12 +9,10 @@ import (
     "google.golang.org/api/option"
 )
 
-// FCMSender implementa NotificationSender para FCM
 type FCMSender struct {
     client *messaging.Client
 }
 
-// NewFCMSender inicializa un nuevo cliente FCM
 func NewFCMSender(credentialsFile string) (*FCMSender, error) {
     app, err := firebase.NewApp(context.Background(), nil, option.WithCredentialsFile(credentialsFile))
     if err != nil {
@@ -29,7 +27,6 @@ func NewFCMSender(credentialsFile string) (*FCMSender, error) {
     return &FCMSender{client: client}, nil
 }
 
-// SendNotification envía una notificación a través de FCM
 func (f *FCMSender) SendNotification(message string) error {
     notification := &messaging.Message{
         Notification: &messaging.Notification{
