@@ -1,6 +1,6 @@
 package domain
 
 type SensorRepository interface {
-    Store(SensorData) error
+    Store(sensor SensorData) error
     ListAll() ([]SensorData, error)
 }
