@@ -1,41 +1,54 @@
 package webhook
 
 import (
-	"net/http"
+    "net/http"
+    "webhook-sensors/domain"
 
-	"webhook-sensors/domain"
-	"github.com/gin-gonic/gin"
+    "github.com/gin-gonic/gin"
 )
 
 type WebhookHandler struct {
     notificationSender domain.NotificationSender
-    sensorRepo domain.SensorRepository
+    sensorRepo         domain.SensorRepository
 }
 
 func NewWebhookHandler(sender domain.NotificationSender, repo domain.SensorRepository) *WebhookHandler {
-    return &WebhookHandler{notificationSender: sender, sensorRepo: repo}
-    
+    return &WebhookHandler{
+        notificationSender: sender,
+        sensorRepo:         repo,
+    }
 }
 
 func (h *WebhookHandler) HandleSensorData(c *gin.Context) {
-    var sensorData domain.SensorData
-    if err := c.ShouldBindJSON(&sensorData); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos"})
+    var aggregateData domain.SensorAggregateData
+    if err := c.ShouldBindJSON(&aggregateData); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "❌ Datos inválidos"})
         return
     }
 
-    isOutOfRange, message := domain.ValidateSensor(sensorData)
-    if isOutOfRange {
-        if err := h.notificationSender.SendNotification(message); err != nil {
-            c.JSON(http.StatusInternalServerError, gin.H{"error": "Error enviando notificación"})
-            return
+    sensors := []domain.SensorData{
+        {SensorType: "temperature", Value: aggregateData.Temperature},
+        {SensorType: "humidity", Value: aggregateData.Humidity},
+        {SensorType: "light", Value: aggregateData.Light},
+        {SensorType: "sound", Value: aggregateData.Sound},
+        {SensorType: "airQuality", Value: aggregateData.AirQuality},
+    }
+
+    for _, sensor := range sensors {
+        if isOutOfRange, msg := domain.ValidateSensor(sensor); isOutOfRange {
+            h.notificationSender.SendNotification(msg)
         }
     }
 
-    c.JSON(http.StatusOK, gin.H{"message": "Datos procesados correctamente"})
+    if err := h.sensorRepo.StoreAggregate(aggregateData); err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Error almacenando datos"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"message": "✅ Datos procesados correctamente"})
 }
 
-// GetSensorReadings devuelve todas las lecturas almacenadas
+// devuelve todas las lecturas almacenadas.
 func (h *WebhookHandler) GetSensorReadings(c *gin.Context) {
     readings, err := h.sensorRepo.ListAll()
     if err != nil {

@@ -30,7 +30,7 @@ func NewFCMSender(credentialsFile string) (*FCMSender, error) {
 func (f *FCMSender) SendNotification(message string) error {
     notification := &messaging.Message{
         Notification: &messaging.Notification{
-            Title: "Alerta de Sensor",
+            Title: "⚠️ Alerta de Sensor",
             Body:  message,
         },
         Topic: "sensor_alerts",
@@ -42,6 +42,6 @@ func (f *FCMSender) SendNotification(message string) error {
         return err
     }
 
-    log.Println("Notificación enviada con éxito:", message)
+    log.Println("✅ Notificación enviada:", message)
     return nil
 }
